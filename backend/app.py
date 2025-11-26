@@ -21,19 +21,18 @@ cursor = db.cursor(dictionary=True)
 
 # Esto convierte nombres que recibimos del ESP a los IDs de la BD.
 Variables = {
-    "temperatura": 1,
-    "humedad": 2,
-    "movimiento": 3,
-    "valor_ldr": 4,
-    "humedad_suelo": 5,
-    "relevador": 6
+    "valor_ldr": 1,
+    "temperatura": 2,
+    "humedad": 3,
+    "humedad_suelo": 4,
+    "movimiento": 5,
 }
 
 # Ruta para obtener configuración de una planta
 # @app.route define una URL del servidor.
 @app.route('/config/<int:id_planta>', methods=['GET'])
 def get_config(id_planta):
-    # Instrucción SQL que busca información de la planta y su especie
+    # Instrucción SQL que busca información de la planta y su especie_fake
     cursor.execute("""
         SELECT p.ID_planta, p.ID_especie, e.Frecuencia_riego,
                 e.HumedadT_min, e.HumedadT_max,
@@ -41,7 +40,7 @@ def get_config(id_planta):
                 e.Humedad_min, e.Humedad_max,
                 e.Luz_min, e.Luz_max
         FROM Planta p
-        JOIN Especie e ON p.ID_especie = e.ID_especie
+        JOIN especie_fake e ON p.ID_especie = e.ID_especie
         WHERE p.ID_planta = %s
     """, (id_planta,))  # Aquí metemos id_planta en el %s
 
@@ -91,14 +90,14 @@ def recibir_datos():
     # Si el ESP NO envía ID_planta, usamos 1 por defecto
     id_planta = int(datos.get("ID_planta", 1))
 
-    # Consulta para obtener configuración
+    # Consulta para obtener configuración desde especie_fake
     cursor.execute("""
         SELECT p.ID_especie, e.Frecuencia_riego,
                 e.HumedadT_min, e.HumedadT_max,
                 e.Temperatura_min, e.Temperatura_max,
                 e.Humedad_min, e.Humedad_max,
                 e.Luz_min, e.Luz_max
-        FROM Planta p JOIN Especie e ON p.ID_especie = e.ID_especie
+        FROM Planta p JOIN especie_fake e ON p.ID_especie = e.ID_especie
         WHERE p.ID_planta = %s
     """, (id_planta,))
 

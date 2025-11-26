@@ -24,7 +24,7 @@ RunningMedian pirMed(5);
 // Constantes
 const char* ssid = "iPhone";
 const char* password = "soymikel";
-String serverBase = "http://10.25.75.234";  
+String serverBase = "http://172.20.10.4";  
 const int PLANTA_ID = 1;  
 const int MAX_PULSOS = 5; 
 
@@ -58,10 +58,14 @@ float leerHum(){
   return humMed.getMedian();
 }
 
-int leerLDR(){
-  int v = analogRead(LDRPIN);
-  ldrMed.add(v);
-  return ldrMed.getMedian();
+// Leer LDR y convertir a porcentaje 
+int leerLDRPct(){
+  int raw = analogRead(LDRPIN);
+  ldrMed.add(raw);
+  int rawMed = ldrMed.getMedian();
+  // Convertir rango 0-4095 a 0-100%
+  int porcentaje = map(rawMed, 0, 4095, 0, 100);
+  return constrain(porcentaje, 0, 100);
 }
 
 int leerSoilPct(){
@@ -93,6 +97,8 @@ bool fetchConfigFromServer(){
   HTTPClient http;
   // Inicia servidor
   http.begin(url);
+  // Timeout
+  http.setTimeout(10000);
   // Respuesta del servidor (code 200 es el correcto)
   int code = http.GET();
   if(code != 200){
@@ -106,8 +112,7 @@ bool fetchConfigFromServer(){
 
   // Parsear JSON
   // Reservar espacio para el JSON
-  // CORRECCIÓN: aumentar capacidad para evitar overflow si JSON es ligeramente mayor
-  const size_t capacity = JSON_OBJECT_SIZE(20) + 300; // CORRECCIÓN: antes JSON_OBJECT_SIZE(12)+200
+  const size_t capacity = JSON_OBJECT_SIZE(20) + 300; 
   // Objeto documento JSON
   StaticJsonDocument<capacity> doc;
   // Se parsea el payload en doc
@@ -162,7 +167,7 @@ void doIrrigationPulses(){
   nextIrrigationMillis = millis() + fh_ms;
 }
 
-// Enviar datos agrupados a Flask
+// Enviar datos agrupados a Flask (orden según mapeo en Flask)
 void sendDataToServer(float t, float h, int movimiento, int valorLDR, int humedadSuelo, int estadoRel){
   if(WiFi.status() != WL_CONNECTED) return;
   // Objeto http
@@ -174,13 +179,13 @@ void sendDataToServer(float t, float h, int movimiento, int valorLDR, int humeda
   // Cabecera
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
-  // Agrupa los datos (CORREGIDO: agregado ID_planta)
+  // Agrupa los datos en orden: valor_ldr, temperatura, humedad, humedad_suelo, movimiento
   String body = "ID_planta=" + String(PLANTA_ID)
+    + "&valor_ldr=" + String(valorLDR)
     + "&temperatura=" + String(t, 2)
     + "&humedad=" + String(h, 2)
-    + "&movimiento=" + String(movimiento)
-    + "&valor_ldr=" + String(valorLDR)
     + "&humedad_suelo=" + String(humedadSuelo)
+    + "&movimiento=" + String(movimiento)
     + "&relevador=" + String(estadoRel);
   // Respuesta del servidor (code 200 es el correcto)
   int code = http.POST(body);
@@ -252,7 +257,7 @@ void loop(){
   float t = leerTemp();
   float h = leerHum();
   int movimiento = leerPIR();
-  int valorLDR = leerLDR();
+  int valorLDR = leerLDRPct();  
   int humedadSuelo = leerSoilPct();
 
   // Control de riego por timer
