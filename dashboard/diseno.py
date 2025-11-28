@@ -22,7 +22,7 @@ def obtener_datos():
         autocommit=True,
     )
     query = """
-    SELECT 
+    SELECT
         r.Tiempo,
         MAX(CASE WHEN v.Nombre = 'Luz' THEN CAST(r.Valor AS DECIMAL(10,2)) END) AS Luz,
         MAX(CASE WHEN v.Nombre = 'Temperatura' THEN CAST(r.Valor AS DECIMAL(10,2)) END) AS Temperatura,
@@ -82,42 +82,27 @@ st.markdown(
     [data-testid="stSidebar"] .stButton > button {
         background-color: rgba(36, 194, 80, 0.15);
         color: rgb(25, 51, 102);
-        width: 100%;
+        width: 100% !important;
+        min-width: 200px !important;
+        height: 50px !important;
         border: none;
         border-radius: 8px;
         padding: 12px;
+        font-family: 'Epilogue', sans-serif;
         font-size: 16px;
     }
     [data-testid="stSidebar"] .stButton > button:hover {
-        background-color: rgba(0, 0, 0, 0.1);
+        background-color: rgb(237, 186, 247);
     }
-    [data-testid="stSidebar"] .stTextInput input {
-        color: rgb(25, 51, 102);
-        background-color: rgba(255, 255, 255, 0.2);
-    }
-
-    [data-testid="stSidebar"] .stDateInput label {
+    [data-testid="stSidebar"] label {
         color: rgb(25, 51, 102) !important;
-        font-weight: bold;
+        font-family: 'Epilogue', sans-serif !important;
     }
-
-    [data-testid="stSidebar"] .stDateInput input {
-        color: #193366 !important;
-        background-color: rgb(25, 51, 102) !important;
-    }
-
-    [data-testid="stSidebar"] .stCheckbox label {
+    [data-testid="stSidebar"] label p,
+    [data-testid="stSidebar"] label span,
+    [data-testid="stSidebar"] label div {
         color: rgb(25, 51, 102) !important;
-        font-size: 14px;
-        font-weight: 500;
-    }
-
-    [data-testid="stSidebar"] .stCheckbox label p {
-        color: rgb(25, 51, 102) !important;
-    }
-
-    [data-testid="stSidebar"] .stCheckbox span {
-        color: rgb(25, 51, 102) !important;
+        font-family: 'Epilogue', sans-serif !important;
     }
     </style>
     """,
@@ -132,8 +117,7 @@ sidebar_c1, sidebar_c2 = st.sidebar.columns([1, 3])
 with sidebar_c1:
     st.image("bloomjoy.jpeg")
 with sidebar_c2:
-    st.markdown('<p style="color: rgba(29, 201, 57, 1); font-size: 28px; font-weight: bold;">BloomJoy</p>', unsafe_allow_html=True)
-# Botones por sensor: si se presionan, cambian la página (simula páginas separadas)
+    st.markdown('<p style="color: rgba(29, 201, 57, 1); font-size: 28px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">BloomJoy</p>', unsafe_allow_html=True)
 if st.sidebar.button("Visión General (Overview)"):
     st.session_state['page'] = 'Overview'
 if st.sidebar.button("Humedad de Suelo"):
@@ -147,24 +131,24 @@ if st.sidebar.button("Detección de Movimiento"):
 if st.sidebar.button("Humedad de Ambiente"):
     st.session_state['page'] = 'Humedad'
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px;">Proyecto BloomJoy</p>', unsafe_allow_html=True)
-st.sidebar.markdown('<p style="color: rgb(25, 51, 102); font-size: 14px;">Sistema IoT de monitoreo de plantas</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px; font-family: \'Epilogue\', sans-serif;">Proyecto BloomJoy</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="color: rgb(25, 51, 102); font-size: 14px; font-family: \'Epilogue\', sans-serif;">Sistema IoT de monitoreo de plantas</p>', unsafe_allow_html=True)
 
 # Parámetros globales
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px;">Controles globales</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px; font-family: \'Epilogue\', sans-serif;">Controles globales</p>', unsafe_allow_html=True)
 
-# Obtener datos inicialmente (FUERA del loop)
+# Obtener datos inicialmente 
 df = obtener_datos()
 
-# Parámetros de fecha (FUERA del loop, para que no se dupliquen widgets)
+# Parámetros de fecha 
 if not df.empty:
     date_min = df['Tiempo'].min().date()
     date_max = df['Tiempo'].max().date()
     start_date, end_date = st.sidebar.date_input(
-        "Rango de fechas", 
-        [date_min, date_max], 
-        min_value=date_min, 
+        "Rango de fechas",
+        [date_min, date_max],
+        min_value=date_min,
         max_value=date_max,
         key="date_range_filter"
     )
@@ -173,13 +157,27 @@ else:
     end_date = datetime.now().date()
 
 # ---------- Helpers ----------
-def timeseries_plot(df, y, title, y_label, smooth_win=None):
+def timeseries_plot(df, y, title, y_label, smooth_win=None, color='rgb(219, 117, 240)', smooth_color='rgb(233, 99, 99)'):
     fig = px.line(df, x='Tiempo', y=y, title=title)
-    fig.update_layout(yaxis_title=y_label, xaxis_title="Tiempo", margin=dict(t=40,l=40,r=20,b=20))
+
+    fig.update_traces(line=dict(color=color, width=2))
+
+    fig.update_layout(
+        yaxis_title=y_label,
+        xaxis_title="Tiempo",
+        margin=dict(t=40, l=40, r=20, b=20),
+        font=dict(family="Epilogue, sans-serif")
+    )
+
     if smooth_win and len(df) >= smooth_win:
-        df_copy = df.copy()
-        df_copy['rolling'] = df_copy[y].rolling(smooth_win, center=False).mean()
-        fig.add_scatter(x=df_copy['Tiempo'], y=df_copy['rolling'], mode='lines', name=f'{smooth_win}-period (rolling)')
+        df['rolling'] = df[y].rolling(smooth_win, center=False).mean()
+        fig.add_scatter(
+            x=df['Tiempo'],
+            y=df['rolling'],
+            mode='lines',
+            name=f'{smooth_win}-period (rolling)',
+            line=dict(color=smooth_color, width=2, dash='dash')  
+        )
     return fig
 
 def small_stats(df, col):
@@ -218,7 +216,7 @@ page = st.session_state['page']
 
 # ---------- Overview Page ----------
 if page == 'Overview':
-    st.markdown('<p style="color: rgb(19, 96, 134); font-size: 32px; font-weight: bold;">Visión General de estado y condiciones</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 32px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Visión General de estado y condiciones</p>', unsafe_allow_html=True)
     currentBox_css = """
     <style>
     .st-key-currentConditions {
@@ -235,7 +233,7 @@ if page == 'Overview':
     """
     st.html(currentBox_css)
     with st.container(key="currentConditions"):
-        st.markdown('<p style="color: rgb(19, 96, 134); font-size: 30px; font-weight: bold; text-align: center;">Condiciones actuales de planta de cultivo Samuel</p>',unsafe_allow_html=True)
+        st.markdown('<p style="color: rgb(25, 51, 102); font-size: 30px; font-family: \'Epilogue\', sans-serif; font-weight: bold; text-align: center;">Condiciones actuales de planta de cultivo Samuel</p>',unsafe_allow_html=True)
         current_col1, current_col2, current_col3, current_col4, current_col5 = st.columns(5)
         with current_col2:
             st.metric("Temperatura (°C)", f"{df['Temperatura'].iloc[-1]:.1f}", delta=f"{df['Temperatura'].iloc[-1]-df['Temperatura'].mean():.1f}")
@@ -247,14 +245,14 @@ if page == 'Overview':
             st.metric("Humedad ambiente (%)", f"{df['Humedad'].iloc[-1]:.1f}")
             st.metric("Movimiento (PIR)", f"{df['Movimiento'].iloc[-1]}")
         st.markdown("---")
-        st.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px;">Exportar datos:</p>',unsafe_allow_html=True)
+        st.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px; font-family: \'Epilogue\', sans-serif;">Exportar datos:</p>',unsafe_allow_html=True)
         st.download_button("Descargar CSV filtrado", df.to_csv(index=False).encode('utf-8'), "sensor_data_filtered.csv", "text/csv", key=f"download_csv_{count}")
-    st.markdown('<p style="color: rgb(19, 96, 134); font-size: 34px; font-weight: bold;">Últimas lecturas (timeline)</p>',unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 34px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Últimas lecturas (timeline)</p>',unsafe_allow_html=True)
     st.dataframe(df.head(20))
-    st.markdown('<p style="color: rgb(19, 96, 134); font-size: 27px;">Humedad y temperatura</p>',unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 27px; font-family: \'Epilogue\', sans-serif;">Humedad y temperatura</p>',unsafe_allow_html=True)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['Tiempo'], y=df['Humedad de la tierra'], name='Humedad suelo (%)', mode='lines'))
-    fig.add_trace(go.Scatter(x=df['Tiempo'], y=df['Temperatura'], name='Temperatura (°C)', mode='lines', yaxis='y2'))
+    fig.add_trace(go.Scatter(x=df['Tiempo'], y=df['Humedad de la tierra'], name='Humedad suelo (%)', mode='lines', line=dict(color='rgb(66, 182, 240)', width=2)))
+    fig.add_trace(go.Scatter(x=df['Tiempo'], y=df['Temperatura'], name='Temperatura (°C)', mode='lines', yaxis='y2', line=dict(color='rgb(233, 99, 99)', width=2)))
     fig.update_layout(
         title="Humedad y Temperatura",
         xaxis=dict(domain=[0, 0.9]),
@@ -263,9 +261,9 @@ if page == 'Overview':
         height=420
     )
     st.plotly_chart(fig, use_container_width=True)
-    st.markdown('<p style="color: rgb(19, 96, 134); font-size: 27px;">Luz (lux) — evolución</p>',unsafe_allow_html=True)
-    st.plotly_chart(timeseries_plot(df, 'Luz', 'Nivel de luz', 'lux'), use_container_width=True)
-    st.markdown('<p style="color: rgb(19, 96, 134); font-size: 34px; font-weight: bold;">Indicadores y alertas</p>',unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 27px; font-family: \'Epilogue\', sans-serif;">Luz — evolución</p>',unsafe_allow_html=True)
+    st.plotly_chart(timeseries_plot(df, 'Luz', 'Nivel de luz', 'lux', color='rgb(219, 117, 240)'), use_container_width=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 34px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Indicadores y alertas</p>',unsafe_allow_html=True)
     alert_col1, alert_col2, alert_col3 = st.columns(3)
     with alert_col1:
         soil_last, soil_mean, *_ = small_stats(df, 'Humedad de la tierra')
@@ -295,35 +293,36 @@ if page == 'Overview':
         else:
             st.success("Luz en rango adecuado")
     st.markdown("---")
-    st.markdown('<p style="color: rgb(19, 96, 134); font-size: 27px;">Humedad de suelo: Tendencia y predicción básica</p>',unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 27px; font-family: \'Epilogue\', sans-serif;">Humedad de suelo: Tendencia y predicción básica</p>',unsafe_allow_html=True)
     trend, futX, futY = linear_predict(df.reset_index(drop=True), 'Humedad de la tierra', periods=12)
     if trend is not None:
         fig_t = px.line(x=df['Tiempo'], y=df['Humedad de la tierra'], labels={'x':'Fecha', 'y':'Humedad (%)'}, title="Humedad de suelo y tendencia")
-        fig_t.add_scatter(x=df['Tiempo'], y=trend, mode='lines', name='Tendencia (fit)')
+        fig_t.add_scatter(x=df['Tiempo'], y=trend, mode='lines', line=dict(color='rgb(251, 194, 81)', width=2), name='Tendencia (fit)')
         last_ts = df['Tiempo'].iloc[-1]
         future_times = [last_ts + timedelta(minutes=10*(i+1)) for i in range(len(futY))]
-        fig_t.add_scatter(x=future_times, y=futY, mode='lines', name='Predicción futura')
+        fig_t.add_scatter(x=future_times, y=futY, mode='lines', line=dict(color='rgb(233, 99, 99)', width=2), name='Predicción futura')
         st.plotly_chart(fig_t, use_container_width=True)
     else:
         st.info("No hay suficientes puntos para predicción.")
 
-    st.markdown('<p style="color: rgb(19, 96, 134); font-size: 27px;">Histograma de lecturas (distribución)</p>',unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 27px; font-family: \'Epilogue\', sans-serif;">Histograma de lecturas (distribución)</p>',unsafe_allow_html=True)
     fig_hist = px.histogram(df.melt(id_vars=['Tiempo'], value_vars=['Humedad de la tierra','Temperatura','Luz']),
                             x='value', color='variable', barmode='overlay',
-                            labels={'value':'Valor','variable':'Sensor'})
+                            labels={'value':'Valor','variable':'Sensor'},
+                            color_discrete_map={'Humedad de la tierra': 'rgb(66, 182, 240)', 'Temperatura': 'rgb(233, 99, 99)', 'Luz': 'rgb(251, 194, 81)'}, opacity=1)
     st.plotly_chart(fig_hist, use_container_width=True)
 
 # ---------- Página Humedad de Suelo ----------
 elif page == 'Humedad de la tierra':
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 32px; font-weight: bold;">Sensor: Humedad del Suelo</p>', unsafe_allow_html=True)
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-weight: bold;">Visualizaciones y controles específicos del sensor de humedad de suelo</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 32px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Sensor: Humedad del Suelo</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Visualizaciones y controles específicos del sensor de humedad de suelo</p>', unsafe_allow_html=True)
     col1, col2 = st.columns([3,1])
     with col1:
         smooth = st.slider("Ventana de suavizado (rolling)", 1, 30, 6, key=f"smooth_slider_{count}")
         st.plotly_chart(timeseries_plot(df, 'Humedad de la tierra', 'Humedad del suelo (%)', '%', smooth_win=smooth), use_container_width=True)
         st.markdown("*Últimas 48 horas (detalle)*")
         last48 = df[df['Tiempo'] >= (df['Tiempo'].max() - pd.Timedelta(hours=48))]
-        st.line_chart(last48.set_index('Tiempo')['Humedad de la tierra'])
+        st.plotly_chart(timeseries_plot(last48, 'Humedad de la tierra', '', '%', color='rgb(233, 99, 99)'),use_container_width=True)
     with col2:
         last, mean, med, minv, maxv = small_stats(df, 'Humedad de la tierra')
         st.metric("Lectura actual", f"{last:.1f} %", delta=f"{last-mean:.1f}")
@@ -346,13 +345,13 @@ elif page == 'Humedad de la tierra':
 
 # ---------- Página Temperatura ----------
 elif page == 'Temperatura':
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 40px; font-weight: bold;">Sensor: Temperatura</p>', unsafe_allow_html=True)
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-weight: bold;">Visualizaciones y alertas de temperatura.</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 40px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Sensor: Temperatura</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Visualizaciones y alertas de temperatura.</p>', unsafe_allow_html=True)
     col1, col2 = st.columns([2,1])
     with col1:
         st.plotly_chart(timeseries_plot(df, 'Temperatura', 'Temperatura (°C)', '°C', smooth_win=5), use_container_width=True)
         df['date_only'] = df['Tiempo'].dt.date
-        box = px.box(df, x='date_only', y='Temperatura', labels={'date_only':'Día','Temperatura':'°C'}, title="Distribución diaria de temperatura")
+        box = px.box(df, x='date_only', y='Temperatura', labels={'date_only':'Día','Temperatura':'°C'}, title="Distribución diaria de temperatura",  color_discrete_sequence=['rgb(66, 182, 240)'])
         st.plotly_chart(box, use_container_width=True)
     with col2:
         last, mean, med, minv, maxv = small_stats(df, 'Temperatura')
@@ -369,33 +368,36 @@ elif page == 'Temperatura':
 
 # ---------- Página Luz ----------
 elif page == 'Luz':
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 40px; font-weight: bold;">Sensor: Luz</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 40px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Sensor: Luz</p>', unsafe_allow_html=True)
     st.plotly_chart(timeseries_plot(df, 'Luz', 'Nivel de luz (lux)', 'lux', smooth_win=8), use_container_width=True)
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-weight: bold;">Análisis de horas de luz y recomendaciones para la planta según lux.</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Análisis de horas de luz y recomendaciones para la planta según lux.</p>', unsafe_allow_html=True)
     lux_thr = st.slider("Umbral de luz (lux) para considerar 'iluminado'", 50, 2000, 300, key=f"lux_slider_{count}")
     df['is_light'] = df['Luz'] > lux_thr
     hours_light = df.groupby(df['Tiempo'].dt.date)['is_light'].sum() * 10/60
-    st.bar_chart(hours_light, height=300)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=hours_light.index, y=hours_light.values, marker=dict(color='rgb(251, 194, 81)'),name='Horas de luz'))
+    fig.update_layout(xaxis_title="Fecha",yaxis_title="Horas de luz",height=300,font=dict(family="Epilogue, sans-serif"), showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
     avg_hours = hours_light.mean()
     st.markdown(f"Horas promedio con luz > {lux_thr} lux por día: {avg_hours:.2f} h")
 
 # ---------- Página PIR (Movimiento) ----------
 elif page == 'Movimiento':
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 40px; font-weight: bold;">Sensor: PIR (Movimiento)</p>', unsafe_allow_html=True)
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-weight: bold;">Registros de detección de movimiento y conteos por día/hora.</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 40px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Sensor: PIR (Movimiento)</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Registros de detección de movimiento y conteos por día/hora.</p>', unsafe_allow_html=True)
     hits = df[df['Movimiento'] == 1]
     st.markdown(f"Detecciones totales: {hits.shape[0]}")
     if not hits.empty:
         st.dataframe(hits.sort_values('Tiempo', ascending=False).head(20))
     df['hour'] = df['Tiempo'].dt.hour
     pir_by_hour = df.groupby('hour')['Movimiento'].sum().reindex(range(24), fill_value=0)
-    fig = px.bar(x=pir_by_hour.index, y=pir_by_hour.values, labels={'x':'Hora','y':'Detecciones'}, title="Detecciones por hora")
+    fig = px.bar(x=pir_by_hour.index, y=pir_by_hour.values, labels={'x':'Hora','y':'Detecciones'}, title="Detecciones por hora", color_discrete_sequence=['rgb(251, 194, 81)'])
     st.plotly_chart(fig, use_container_width=True)
 
 # ---------- Página Humedad Ambiente ----------
 elif page == 'Humedad':
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 40px; font-weight: bold;">Sensor: Humedad del Ambiente </p>', unsafe_allow_html=True)
-    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-weight: bold;">Monitoreo de la humedad del ambiente.</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 40px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Sensor: Humedad del Ambiente </p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: rgb(25, 51, 102); font-size: 24px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Monitoreo de la humedad del ambiente.</p>', unsafe_allow_html=True)
     st.plotly_chart(timeseries_plot(df, 'Humedad', 'Humedad del ambiente (%)', '%', smooth_win=4), use_container_width=True)
     last, mean, med, minv, maxv = small_stats(df, 'Humedad')
     st.metric("Nivel actual (%)", f"{last:.1f} %", delta=f"{last-mean:.1f}")
