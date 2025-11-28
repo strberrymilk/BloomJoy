@@ -24,7 +24,7 @@ RunningMedian pirMed(5);
 // Constantes
 const char* ssid = "iPhone";
 const char* password = "soymikel";
-String serverBase = "http://172.20.10.4";  
+String serverBase = "http://172.20.10.4:5000";  
 const int PLANTA_ID = 1;  
 const int MAX_PULSOS = 5; 
 
