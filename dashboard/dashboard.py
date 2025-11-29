@@ -47,6 +47,30 @@ def obtener_datos():
     df['Movimiento'] = pd.to_numeric(df['Movimiento'], errors='coerce').fillna(0).astype(int)
     return df
 
+def obtener_configuracion(id_planta=1):
+    """Obtiene los umbrales de configuración desde la base de datos (mismos que usa app.py)"""
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="Minina250506#",
+        database="reto_db",
+        autocommit=True,
+    )
+    query = """
+    SELECT e.HumedadT_min, e.HumedadT_max,
+            e.Temperatura_min, e.Temperatura_max,
+            e.Humedad_min, e.Humedad_max,
+            e.Luz_min, e.Luz_max
+    FROM Planta p
+    JOIN especie_fake e ON p.ID_especie = e.ID_especie
+    WHERE p.ID_planta = %s
+    """
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(query, (id_planta,))
+    config = cursor.fetchone()
+    conn.close()
+    return config if config else {}
+
 st.set_page_config(page_title="BloomJoy", layout="wide", initial_sidebar_state="expanded", page_icon="bloomjoy.svg")
 
 # Auto-refresh cada 5 segundos (5000 milisegundos)
@@ -141,6 +165,9 @@ st.sidebar.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px; font-fa
 # Obtener datos inicialmente 
 df = obtener_datos()
 
+# Obtener configuración de umbrales desde BD (mismos que usa app.py)
+config = obtener_configuracion(id_planta=1)
+
 # Parámetros de fecha 
 if not df.empty:
     date_min = df['Tiempo'].min().date()
@@ -181,7 +208,7 @@ def timeseries_plot(df, y, title, y_label, smooth_win=None, color='rgb(219, 117,
     return fig
 
 def small_stats(df, col):
-    last = df[col].iloc[-1]
+    last = df[col].iloc[0]  
     mean = df[col].mean()
     med = df[col].median()
     minv = df[col].min()
@@ -236,19 +263,21 @@ if page == 'Overview':
         st.markdown('<p style="color: rgb(25, 51, 102); font-size: 30px; font-family: \'Epilogue\', sans-serif; font-weight: bold; text-align: center;">Condiciones actuales de planta de cultivo Samuel</p>',unsafe_allow_html=True)
         current_col1, current_col2, current_col3, current_col4, current_col5 = st.columns(5)
         with current_col2:
-            st.metric("Temperatura (°C)", f"{df['Temperatura'].iloc[-1]:.1f}", delta=f"{df['Temperatura'].iloc[-1]-df['Temperatura'].mean():.1f}")
-            st.metric("Luz (lux)", f"{df['Luz'].iloc[-1]:.0f}", delta=f"{df['Luz'].iloc[-1]-df['Luz'].mean():.0f}")
+            st.metric("Temperatura (°C)", f"{df['Temperatura'].iloc[0]:.1f}", delta=f"{df['Temperatura'].iloc[0]-df['Temperatura'].mean():.1f}")
+            st.metric("Luz (lux)", f"{df['Luz'].iloc[0]:.0f}", delta=f"{df['Luz'].iloc[0]-df['Luz'].mean():.0f}")
         with current_col3:
             st.image("samuel.png", width=170)
-            st.metric("Humedad suelo (%)", f"{df['Humedad de la tierra'].iloc[-1]:.1f}", delta=f"{df['Humedad de la tierra'].iloc[-1]-df['Humedad de la tierra'].mean():.1f}")
+            st.metric("Humedad suelo (%)", f"{df['Humedad de la tierra'].iloc[0]:.1f}", delta=f"{df['Humedad de la tierra'].iloc[0]-df['Humedad de la tierra'].mean():.1f}")
         with current_col4:
-            st.metric("Humedad ambiente (%)", f"{df['Humedad'].iloc[-1]:.1f}")
-            st.metric("Movimiento (PIR)", f"{df['Movimiento'].iloc[-1]}")
+            st.metric("Humedad ambiente (%)", f"{df['Humedad'].iloc[0]:.1f}")
+            st.metric("Movimiento (PIR)", f"{df['Movimiento'].iloc[0]}")
         st.markdown("---")
         st.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px; font-family: \'Epilogue\', sans-serif;">Exportar datos:</p>',unsafe_allow_html=True)
         st.download_button("Descargar CSV filtrado", df.to_csv(index=False).encode('utf-8'), "sensor_data_filtered.csv", "text/csv", key=f"download_csv_{count}")
     st.markdown('<p style="color: rgb(25, 51, 102); font-size: 34px; font-family: \'Epilogue\', sans-serif; font-weight: bold;">Últimas lecturas (timeline)</p>',unsafe_allow_html=True)
-    st.dataframe(df.head(20))
+    df_display = df.head(20).reset_index(drop=True)
+    df_display.index = df_display.index + 1
+    st.dataframe(df_display)
     st.markdown('<p style="color: rgb(25, 51, 102); font-size: 27px; font-family: \'Epilogue\', sans-serif;">Humedad y temperatura</p>',unsafe_allow_html=True)
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df['Tiempo'], y=df['Humedad de la tierra'], name='Humedad suelo (%)', mode='lines', line=dict(color='rgb(66, 182, 240)', width=2)))
@@ -268,28 +297,31 @@ if page == 'Overview':
     with alert_col1:
         soil_last, soil_mean, *_ = small_stats(df, 'Humedad de la tierra')
         st.metric("Humedad suelo (última)", f"{soil_last:.1f} %", delta=f"{soil_last-soil_mean:.1f}")
-        if soil_last < 20:
-            st.error("Humedad baja — considerar riego")
-        elif soil_last > 85:
-            st.warning("Humedad muy alta — revisar drenaje")
+        # Usar umbrales de la BD (mismos que app.py)
+        if soil_last < config['HumedadT_min']:
+            st.error(f"Humedad baja (< {config['HumedadT_min']}%) — considerar riego")
+        elif soil_last > config['HumedadT_max']:
+            st.warning(f"Humedad muy alta (> {config['HumedadT_max']}%) — revisar drenaje")
         else:
             st.success("Humedad dentro de rango")
     with alert_col2:
         temp_last, temp_mean, *_ = small_stats(df, 'Temperatura')
         st.metric("Temperatura (última)", f"{temp_last:.1f} °C", delta=f"{temp_last-temp_mean:.1f}")
-        if temp_last < 10:
-            st.warning("Temperatura baja — riesgo de helada")
-        elif temp_last > 33:
-            st.warning("Temperatura alta — mover a sombra/ventilar")
+        # Usar umbrales de la BD (mismos que app.py)
+        if temp_last < config['Temperatura_min']:
+            st.warning(f"Temperatura baja (< {config['Temperatura_min']}°C) — riesgo de helada")
+        elif temp_last > config['Temperatura_max']:
+            st.warning(f"Temperatura alta (> {config['Temperatura_max']}°C) — mover a sombra/ventilar")
         else:
             st.info("Temperatura estable")
     with alert_col3:
         light_last, light_mean, *_ = small_stats(df, 'Luz')
         st.metric("Luz (última)", f"{light_last:.0f} lux", delta=f"{light_last-light_mean:.0f}")
-        if light_last < 100:
-            st.info("Poca luz — planta de interior o sombra")
-        elif light_last > 1500:
-            st.warning("Luz muy intensa — proteger del sol directo")
+        # Usar umbrales de la BD (mismos que app.py)
+        if light_last < config['Luz_min']:
+            st.info(f"Poca luz (< {config['Luz_min']} lux) — planta de interior o sombra")
+        elif light_last > config['Luz_max']:
+            st.warning(f"Luz muy intensa (> {config['Luz_max']} lux) — proteger del sol directo")
         else:
             st.success("Luz en rango adecuado")
     st.markdown("---")
@@ -328,8 +360,9 @@ elif page == 'Humedad de la tierra':
         st.metric("Lectura actual", f"{last:.1f} %", delta=f"{last-mean:.1f}")
         st.markdown("Estadísticas")
         st.markdown(f"- Promedio: {mean:.1f}%\n- Mediana: {med:.1f}%\n- Mín: {minv:.1f}%\n- Máx: {maxv:.1f}%")
-        low_thr = st.number_input("Umbral bajo (regar si <)", value=25.0, key=f"low_thr_{count}")
-        high_thr = st.number_input("Umbral alto (saturación si >)", value=85.0, key=f"high_thr_{count}")
+        # Usar umbrales de la BD
+        low_thr = st.number_input("Umbral bajo (regar si <)", value=float(config['HumedadT_min']), key=f"low_thr_{count}")
+        high_thr = st.number_input("Umbral alto (saturación si >)", value=float(config['HumedadT_max']), key=f"high_thr_{count}")
         if last < low_thr:
             st.warning("Estado: Necesita riego — activar bomba programada")
         elif last > high_thr:
@@ -356,15 +389,16 @@ elif page == 'Temperatura':
     with col2:
         last, mean, med, minv, maxv = small_stats(df, 'Temperatura')
         st.metric("Temperatura actual", f"{last:.1f} °C", delta=f"{last-mean:.1f}")
-        if last > 33:
-            st.warning("Temperatura alta — posible estrés térmico")
-        elif last < 7:
-            st.warning("Temperatura baja — riesgo de daño por frío")
+        # Usar umbrales de la BD
+        if last > config['Temperatura_max']:
+            st.warning(f"Temperatura alta (> {config['Temperatura_max']}°C) — posible estrés térmico")
+        elif last < config['Temperatura_min']:
+            st.warning(f"Temperatura baja (< {config['Temperatura_min']}°C) — riesgo de daño por frío")
         else:
             st.success("Temperatura en rango")
-        st.markdown("Configuración de notificaciones (simulado)")
-        high = st.number_input("Alerta si temp > (°C)", value=33.0, key=f"temp_high_{count}")
-        low = st.number_input("Alerta si temp < (°C)", value=7.0, key=f"temp_low_{count}")
+        st.markdown("Configuración de notificaciones")
+        high = st.number_input("Alerta si temp > (°C)", value=float(config['Temperatura_max']), key=f"temp_high_{count}")
+        low = st.number_input("Alerta si temp < (°C)", value=float(config['Temperatura_min']), key=f"temp_low_{count}")
 
 # ---------- Página Luz ----------
 elif page == 'Luz':
@@ -401,10 +435,11 @@ elif page == 'Humedad':
     st.plotly_chart(timeseries_plot(df, 'Humedad', 'Humedad del ambiente (%)', '%', smooth_win=4), use_container_width=True)
     last, mean, med, minv, maxv = small_stats(df, 'Humedad')
     st.metric("Nivel actual (%)", f"{last:.1f} %", delta=f"{last-mean:.1f}")
-    if last < 5:
-        st.error("Nivel bajo — reponer agua")
-    elif last > 28:
-        st.warning("Nivel muy alto — posible rebosamiento")
+    # Usar umbrales de la BD
+    if last < config['Humedad_min']:
+        st.error(f"Nivel bajo (< {config['Humedad_min']}%) — reponer agua")
+    elif last > config['Humedad_max']:
+        st.warning(f"Nivel muy alto (> {config['Humedad_max']}%) — posible rebosamiento")
     else:
         st.success("Nivel estable")
 
