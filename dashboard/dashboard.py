@@ -12,13 +12,18 @@ import time
 import pathlib
 from bokeh.plotting import figure
 from streamlit_autorefresh import st_autorefresh
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
 
 def obtener_datos():
     conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="Minina250506#",
-        database="reto_db",
+        host=os.getenv('MYSQL_HOST'),
+        user=os.getenv('MYSQL_USER'),
+        password=os.getenv('MYSQL_PASSWORD'),
+        database=os.getenv('MYSQL_DATABASE'),
+        port=int(os.getenv('MYSQL_PORT')),
         autocommit=True,
     )
     query = """
@@ -30,7 +35,7 @@ def obtener_datos():
         MAX(CASE WHEN v.Nombre = 'HumedadTierra' THEN CAST(r.Valor AS DECIMAL(10,2)) END) AS 'Humedad de la tierra',
         MAX(CASE WHEN v.Nombre = 'Movimiento' THEN CAST(r.Valor AS SIGNED) END) AS Movimiento
     FROM registro r
-    JOIN Variable v ON r.ID_variable = v.ID_variable
+    JOIN variable v ON r.ID_variable = v.ID_variable
     WHERE r.ID_planta = 1
     GROUP BY r.Tiempo
     ORDER BY r.Tiempo DESC
@@ -50,10 +55,11 @@ def obtener_datos():
 def obtener_configuracion(id_planta=1):
     """Obtiene los umbrales de configuración desde la base de datos (mismos que usa app.py)"""
     conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="Minina250506#",
-        database="reto_db",
+        host=os.getenv('MYSQL_HOST'),
+        user=os.getenv('MYSQL_USER'),
+        password=os.getenv('MYSQL_PASSWORD'),
+        database=os.getenv('MYSQL_DATABASE'),
+        port=int(os.getenv('MYSQL_PORT')),
         autocommit=True,
     )
     query = """
@@ -61,7 +67,7 @@ def obtener_configuracion(id_planta=1):
             e.Temperatura_min, e.Temperatura_max,
             e.Humedad_min, e.Humedad_max,
             e.Luz_min, e.Luz_max
-    FROM Planta p
+    FROM planta p
     JOIN especie_fake e ON p.ID_especie = e.ID_especie
     WHERE p.ID_planta = %s
     """
@@ -165,7 +171,7 @@ st.sidebar.markdown('<p style="color: rgb(25, 51, 102); font-size: 17px; font-fa
 # Obtener datos inicialmente 
 df = obtener_datos()
 
-# Obtener configuración de umbrales desde BD (mismos que usa app.py)
+# Obtener configuración de umbrales desde BD 
 config = obtener_configuracion(id_planta=1)
 
 # Parámetros de fecha 

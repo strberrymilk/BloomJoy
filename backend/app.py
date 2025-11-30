@@ -2,18 +2,28 @@
 from datetime import datetime
 from flask import Flask, request, jsonify
 import mysql.connector
+import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
 
 # Crear la aplicación
 app = Flask(__name__)
 
+# Función para conectar a MySQL usando variables de entorno
+def get_db_connection():
+    return mysql.connector.connect(
+        host=os.getenv('MYSQL_HOST', 'localhost'),
+        user=os.getenv('MYSQL_USER', 'root'),
+        password=os.getenv('MYSQL_PASSWORD', 'Minina250506#'),
+        database=os.getenv('MYSQL_DATABASE', 'reto_db'),
+        port=int(os.getenv('MYSQL_PORT', 3306)),
+        autocommit=True
+    )
+
 # Conexión a MySQL 
-db = mysql.connector.connect(
-    host="localhost",       
-    user="root",     
-    password="Minina250506#", 
-    database="reto_db",     
-    autocommit=True         # Para guardar automáticamente los INSERT
-)
+db = get_db_connection()
 
 # El cursor es un objeto que permite ejecutar SQL
 # dictionary=True significa que traerá los resultados como diccionarios, no como tuplas
@@ -39,7 +49,7 @@ def get_config(id_planta):
                 e.Temperatura_min, e.Temperatura_max,
                 e.Humedad_min, e.Humedad_max,
                 e.Luz_min, e.Luz_max
-        FROM Planta p
+        FROM planta p
         JOIN especie_fake e ON p.ID_especie = e.ID_especie
         WHERE p.ID_planta = %s
     """, (id_planta,))  # Aquí metemos id_planta en el %s
@@ -97,7 +107,7 @@ def recibir_datos():
                 e.Temperatura_min, e.Temperatura_max,
                 e.Humedad_min, e.Humedad_max,
                 e.Luz_min, e.Luz_max
-        FROM Planta p JOIN especie_fake e ON p.ID_especie = e.ID_especie
+        FROM planta p JOIN especie_fake e ON p.ID_especie = e.ID_especie
         WHERE p.ID_planta = %s
     """, (id_planta,))
 
@@ -167,4 +177,5 @@ def recibir_datos():
 
 # Iniciar servidor
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
