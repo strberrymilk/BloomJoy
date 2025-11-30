@@ -14,11 +14,11 @@ app = Flask(__name__)
 # Función para conectar a MySQL usando variables de entorno
 def get_db_connection():
     return mysql.connector.connect(
-        host=os.getenv('MYSQL_HOST', 'localhost'),
-        user=os.getenv('MYSQL_USER', 'root'),
-        password=os.getenv('MYSQL_PASSWORD', 'Minina250506#'),
-        database=os.getenv('MYSQL_DATABASE', 'reto_db'),
-        port=int(os.getenv('MYSQL_PORT', 3306)),
+        host=os.getenv('MYSQL_HOST'),
+        user=os.getenv('MYSQL_USER'),
+        password=os.getenv('MYSQL_PASSWORD'),
+        database=os.getenv('MYSQL_DATABASE'),
+        port=int(os.getenv('MYSQL_PORT')),
         autocommit=True
     )
 
