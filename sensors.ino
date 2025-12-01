@@ -2,6 +2,7 @@
 #include "DHT.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>        
 #include <RunningMedian.h>
 
@@ -24,7 +25,7 @@ RunningMedian pirMed(5);
 // Constantes
 const char* ssid = "iPhone";
 const char* password = "soymikel";
-String serverBase = "http://172.20.10.4:5000";  
+String serverBase = "https://bloomjoy-production.up.railway.app";  
 const int PLANTA_ID = 1;  
 const int MAX_PULSOS = 5; 
 
@@ -93,10 +94,15 @@ bool fetchConfigFromServer(){
   }
   // URL del servidor
   String url = serverBase + "/config/" + String(PLANTA_ID);
+  
+  // Cliente seguro para HTTPS
+  WiFiClientSecure client;
+  client.setInsecure(); // Acepta cualquier certificado SSL
+  
   // Objeto http
   HTTPClient http;
-  // Inicia servidor
-  http.begin(url);
+  // Inicia servidor con cliente seguro
+  http.begin(client, url);
   // Timeout
   http.setTimeout(10000);
   // Respuesta del servidor (code 200 es el correcto)
@@ -145,7 +151,6 @@ void doIrrigationPulses(){
   int humedad = leerSoilPct();
   int pulsos = 0;
   Serial.println(">> Iniciando riego por pulsos");
-  // CORRECCIÓN: el while original usaba "&& pulsos" (falso con 0), ahora limitamos por MAX_PULSOS
   while(humedad < (int)HumedadT_min && pulsos < MAX_PULSOS){
     Serial.printf("Pulso %d - ON 2s\n", pulsos+1);
     digitalWrite(RELAYPIN, HIGH);
@@ -174,8 +179,13 @@ void sendDataToServer(float t, float h, int movimiento, int valorLDR, int humeda
   HTTPClient http;
   // URL del servidor
   String url = serverBase + "/data";
-  // Inicializar servidor
-  http.begin(url);
+  
+  // Cliente seguro para HTTPS
+  WiFiClientSecure client;
+  client.setInsecure(); // Acepta cualquier certificado SSL
+  
+  // Inicializar servidor con cliente seguro
+  http.begin(client, url);
   // Cabecera
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 

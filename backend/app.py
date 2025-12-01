@@ -22,13 +22,6 @@ def get_db_connection():
         autocommit=True
     )
 
-# Conexión a MySQL 
-db = get_db_connection()
-
-# El cursor es un objeto que permite ejecutar SQL
-# dictionary=True significa que traerá los resultados como diccionarios, no como tuplas
-cursor = db.cursor(dictionary=True)
-
 # Esto convierte nombres que recibimos del ESP a los IDs de la BD.
 Variables = {
     "valor_ldr": 1,
@@ -42,6 +35,10 @@ Variables = {
 # @app.route define una URL del servidor.
 @app.route('/config/<int:id_planta>', methods=['GET'])
 def get_config(id_planta):
+    # Crear nueva conexión
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+    
     # Instrucción SQL que busca información de la planta y su especie_fake
     cursor.execute("""
         SELECT p.ID_planta, p.ID_especie, e.Frecuencia_riego,
@@ -56,6 +53,10 @@ def get_config(id_planta):
 
     # Sacamos una fila de resultado
     row = cursor.fetchone()
+    
+    # Cerrar cursor y conexión
+    cursor.close()
+    db.close()
 
     # Si no existe esa planta, devolvemos error
     if not row:
@@ -82,12 +83,18 @@ def get_config(id_planta):
 # Ruta para recibir datos del ESP32
 @app.route('/data', methods=['POST'])  
 def recibir_datos():
+    # Crear nueva conexión
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+    
     # request.form obtiene los datos enviados por el ESP32
     # Se convierte a diccionario normal
     datos = request.form.to_dict()
 
     # Si no llegó nada devolvemos error
     if not datos:
+        cursor.close()
+        db.close()
         return jsonify({"error": "No data"}), 400
 
     # Obtener la hora actual
@@ -167,6 +174,10 @@ def recibir_datos():
 
     # Guardamos todos los inserts
     db.commit()
+    
+    # Cerrar cursor y conexión
+    cursor.close()
+    db.close()
 
     # Devolvemos respuesta al ESP32 o quien lo llame
     return jsonify({
