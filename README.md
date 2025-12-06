@@ -1,6 +1,4 @@
-# 🌱 BloomJoy - Maceta Inteligente IoT
-
-<img src="dashboard/bloomjoy.jpeg" alt="BloomJoy" width="400"/>
+# BloomJoy - Maceta Inteligente IoT
 
 ## Introducción
 
