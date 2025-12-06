@@ -1,6 +1,6 @@
-# BloomJoy - Maceta Inteligente IoT
+# 🌱 BloomJoy - Maceta Inteligente IoT
 
-![BloomJoy](dashboard/bloomjoy.jpeg)
+<img src="dashboard/bloomjoy.jpeg" alt="BloomJoy" width="400"/>
 
 ## Introducción
 
@@ -63,7 +63,7 @@ La arquitectura completa incluye:
 
 ---
 
-### 3**Código ESP32 (Arduino)** - `sensors.ino`
+### **Código ESP32 (Arduino)** - `sensors.ino`
 
 **Propósito**: Firmware del microcontrolador que gestiona sensores, riego y comunicación HTTP.
 
@@ -148,6 +148,7 @@ ID_registro | ID_planta | ID_variable | Tiempo              | Valor
 1           | 1         | 2           | 2024-11-29 10:15:00 | 25.3
 2           | 1         | 4           | 2024-11-29 10:15:00 | 45
 ```
+
 ---
 
 ### **Deployment en Railway**
@@ -382,11 +383,11 @@ El dashboard se actualiza automáticamente cada 5 segundos sin recargar la pági
 
 ## Créditos y Agradecimientos
 
-Ana Camila Cuevas González
-Ana Sofía Moreno Hernández
-Isabella Jiménez Villeda
-Isabella Montiel Reyes
-Nínive Aguilar
+Ana Camila Cuevas González  
+Ana Sofía Moreno Hernández  
+Isabella Jiménez Villeda  
+Isabella Montiel Reyes  
+Nínive Aguilar  
 Profesorado de Implementación de Internet de las Cosas, Tec de Monterrey campus Querétaro
 
 ---
